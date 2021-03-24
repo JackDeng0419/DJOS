@@ -1,6 +1,6 @@
 org 0x7c00 ; put these codes into physical address 7c00H
 
-LOAD_ADDR EQU 0x8000
+LOAD_ADDR EQU 0x9000
 jmp entry
 
 ; just some initial steps, don't need to care
@@ -39,7 +39,7 @@ readFloppy:
 
     mov BX, LOAD_ADDR ; read the data into address: LOAD_ADDR
     mov AH, 0x02 ; 0x02 means this is for reading
-    mov AL, 1 ; how many sector to read
+    mov AL, 2 ; how many sector to read
     mov DL, 0 ; the 0th floppy driver
 
     INT 0x13 ; BIOS int, for reading floppy
@@ -52,9 +52,3 @@ readFloppy:
 fin:
     HLT
     jmp fin
-
-msg:
-    DB 0x0a, 0x0a; ascii code for \n
-    DB "Hello World"
-    DB 0x0a
-    DB 0
