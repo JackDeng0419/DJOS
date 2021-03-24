@@ -1,6 +1,8 @@
 %include "pm.inc"
 org 0x9000
 
+VRAM_ADDRESS equ 0x00a0000
+
 jmp LABEL_BEGIN
 
 ;==================================================================================
@@ -88,12 +90,78 @@ LABEL_SEG_CODE32:
     mov ax, SelectorVram
     mov ds, ax
 C_CODE_ENTRY:
-    %include "write_vga.asm"
+    %include "write_vga_desktop.asm"
+
+;==[define some functions for C to use]================================================================
     io_hlt:
         HLT
         RET
+    io_cli:
+      CLI
+      RET
+    
+    io_sti:
+      STI
+      RET
+    io_stihlt:
+      STI
+      HLT
+      RET
+    io_in8:
+      mov  edx, [esp + 4]
+      mov  eax, 0
+      in   al, dx
+      ret
 
-SegCode32Len equ $ - LABEL_SEG_CODE32
+    io_in16:
+      mov  edx, [esp + 4]
+      mov  eax, 0
+      in   ax, dx
+      ret
+
+    io_in32:
+      mov edx, [esp + 4]
+      in  eax, dx
+      ret
+
+    io_out8:
+       mov edx, [esp + 4]
+       mov al, [esp + 8]
+       out dx, al
+       ret
+
+    io_out16:
+       mov edx, [esp + 4]
+       mov eax, [esp + 8]
+       out dx, ax
+       ret
+
+    io_out32:
+        mov edx, [esp + 4]
+        mov eax, [esp + 8]
+        out dx, eax
+        ret
+
+    io_load_eflags:
+        pushfd
+        pop  eax
+        ret
+
+    io_store_eflags:
+        mov eax, [esp + 4]
+        push eax
+        popfd
+        ret
+;============================================================================================================
+table_rgb.1416:                                         ; byte
+        db 00H, 00H, 00H, 0FFH, 00H, 00H, 00H, 0FFH     ; 0000 _ ........
+        db 00H, 0FFH, 0FFH, 00H, 00H, 00H, 0FFH, 0FFH   ; 0008 _ ........
+        db 00H, 0FFH, 00H, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH ; 0010 _ ........
+        db 0C6H, 0C6H, 0C6H, 84H, 00H, 00H, 00H, 84H    ; 0018 _ ........
+        db 00H, 84H, 84H, 00H, 00H, 00H, 84H, 84H       ; 0020 _ ........
+        db 00H, 84H, 00H, 84H, 84H, 84H, 84H, 84H
+
+SegCode32Len   equ  $ - LABEL_SEG_CODE32
 
 [SECTION .gs]
 ALIGN 32

@@ -39,7 +39,7 @@ readFloppy:
 
     mov BX, LOAD_ADDR ; read the data into address: LOAD_ADDR
     mov AH, 0x02 ; 0x02 means this is for reading
-    mov AL, 2 ; how many sector to read
+    mov AL, 4 ; how many sector to read
     mov DL, 0 ; the 0th floppy driver
 
     INT 0x13 ; BIOS int, for reading floppy
