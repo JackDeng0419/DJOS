@@ -48,6 +48,13 @@ void showString(char* vram, int xsize, int x, int y, char color, unsigned char *
 //================================================================================================
 
 
+//[Cursor]=====================================================================================
+void init_mouse_cursor(char* mouse, char bc);
+void putblock(char* vram, int vxsize, int pxsize, int pysize, int px0, int py0, char* buf, int bxsize);
+static char mcursor[228];
+//================================================================================================
+
+
 void CMain(void){
     struct BOOTINFO bootInfo;
     initBootInfo(&bootInfo);
@@ -84,6 +91,8 @@ void CMain(void){
     // showFont8(vram, xsize, 64, 8, COL8_FFFFFF, systemFont + '3'*16);
 
     showString(vram, xsize, 72, 8, COL8_FFFFFF, "Welcom to DJOS");
+    init_mouse_cursor(mcursor, COL8_008484);
+    putblock(vram, xsize, 12, 19, 80, 80, mcursor, 12);
     for(;;) {
        io_hlt();
     }
@@ -166,4 +175,52 @@ void showFont8(char *vram, int xsize, int x, int y, char c, char* font){
         if ((d & 0x02) != 0) {vram[(y+i)*xsize + x + 6] = c;}
         if ((d & 0x01) != 0) {vram[(y+i)*xsize + x + 7] = c;}
     }
+}
+
+void init_mouse_cursor(char* mouse, char bc) {
+    static char cursor[19][12] = {
+        "*...........",
+        "**..........",
+        "*O*.........",
+        "*OO*........",
+        "*OOO*.......",
+        "*OOOO*......",
+        "*OOOOO*.....",
+        "*OOOOOO*....",
+        "*OOOOOOO*...",
+        "*OOOOOOOO*..",
+        "*OOOOOOOOO*.",
+        "*OOOOOOOOOO*",
+        "*OOOOOO*****",
+        "*OOO*OO*....",
+        "*OO*.*OO*...",
+        "*O*..*OO*...",
+        "**....*OO*..",
+        "......*OO*..",
+        ".......**..."
+    };
+
+      int x, y;
+      for (y = 0; y < 19; y++) {
+          for (x = 0; x < 12; x++) {
+             if (cursor[y][x] == '*') {
+                 mouse[y*12 + x] = COL8_000000;
+             }
+             if (cursor[y][x] == 'O') {
+                mouse[y*12 + x] = COL8_FFFFFF;
+             }
+             if (cursor[y][x] == '.') {
+                 mouse[y*12 + x] = bc;
+             }
+          }
+      }
+}
+
+void putblock(char* vram, int vxsize, int pxsize,
+int pysize, int px0, int py0, char* buf, int bxsize) {
+    int x, y;
+    for (y = 0; y < pysize; y++)
+      for (x = 0; x < pxsize; x++) {
+          vram[(py0+y) * vxsize + (px0+x)] = buf[y * bxsize + x];
+      }
 }
