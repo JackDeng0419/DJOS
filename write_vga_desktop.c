@@ -15,6 +15,9 @@
 #define  COL8_008484  14
 #define  COL8_848484  15
 
+#define  PORT_KEYDAT  0x0060
+#define  PIC_OCW2     0x20
+
 //[Basic initialization]==========================================================
 struct BOOTINFO{
     char * vgaRam;
@@ -22,13 +25,23 @@ struct BOOTINFO{
 };
 void initBootInfo(struct BOOTINFO *pBootInfo);
 static struct BOOTINFO bootInfo;
+
+struct KEYBUF{
+    unsigned char key_buf[32];
+    int next_r, next_w, len;
+};
+
+struct KEYBUF keybuf;
 //======================================================================================
 
 
 //[function to control hardwares]==========================================================
 void io_hlt(void);
 void io_cli(void);
-void io_out8(int port, int data);
+void io_sti(void);
+void io_stihlt(void);
+void io_out8(int port, char data);
+char io_in8(int port);
 int  io_load_eflags(void);
 void io_store_eflags(int eflags);
 //======================================================================================
@@ -57,6 +70,9 @@ static char mcursor[228];
 
 //[Interruption]=====================================================================================
 void intHandlerFromC(char* esp);
+char charToHexVal(char c);
+char* charToHexStr(unsigned char c);
+static char keyval[5] = {'0', 'X', 0, 0, 0};
 //================================================================================================
 
 
@@ -65,6 +81,8 @@ void CMain(void){
     initBootInfo(&bootInfo);
     char*vram = bootInfo.vgaRam;
     int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
+    int data = 0;
+    
 
     init_palette();
 
@@ -98,8 +116,23 @@ void CMain(void){
     showString(vram, xsize, 72, 8, COL8_FFFFFF, "Try to press a key");
     init_mouse_cursor(mcursor, COL8_008484);
     putblock(vram, xsize, 12, 19, 80, 80, mcursor, 12);
+
     for(;;) {
-       io_hlt();
+       io_cli();
+       if(keybuf.len == 0){
+           io_stihlt();
+       }
+       else{
+           data = keybuf.key_buf[keybuf.next_r];
+           keybuf.next_r = (keybuf.next_r+1)%32;
+           io_sti();
+           keybuf.len--;
+           char* pStr = charToHexStr(data);
+           static int showPos = 0;
+           showString(vram, xsize, showPos, 0, COL8_FFFFFF, pStr);
+           showPos += 32;
+           
+       }
     }
 }
 void initBootInfo(struct BOOTINFO *pBootInfo) {
@@ -233,10 +266,30 @@ int pysize, int px0, int py0, char* buf, int bxsize) {
 void intHandlerFromC(char* esp) {
     char*vram = bootInfo.vgaRam;
     int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
-    boxfill8(vram, xsize, COL8_000000, 0,0,32*8 -1, 15);
-    showString(vram, xsize, 0, 0, COL8_FFFFFF, "Welcome to DJOS"); 
-    for (;;) {
-        io_hlt();
+    io_out8(PIC_OCW2, 0x21);
+    unsigned char data = 0;
+    data = io_in8(PORT_KEYDAT);
+    if(keybuf.len < 32){
+        keybuf.key_buf[keybuf.next_w] = data;
+        keybuf.len++;
+        keybuf.next_w = (keybuf.next_w+1)%32;
     }
-    //show_char();
+    
+}
+
+char charToHexVal(char c){
+    if(c>=10){
+        return 'A' + c - 10;
+    }
+    return '0' + c;
+}
+
+char* charToHexStr(unsigned char c){
+    int i = 0;
+    char mod = c% 16;
+    keyval[3] = charToHexVal(mod);
+    c = c/16;
+    keyval[2] = charToHexVal(c);
+
+    return keyval;
 }
