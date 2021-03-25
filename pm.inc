@@ -13,3 +13,13 @@ DA_C    EQU     98h     ; this segment can only be executed
 DA_DRW  EQU     92h    ; this segment can be read and written
 
 DA_DRWA EQU     93h     ; can be read and written
+
+;Gate selecotor, offset, DCount, Attr
+%macro Gate 4
+  dw  (%2 & 0FFFFh)
+  dw  %1
+  dw  (%3 & 1Fh) | ((%4 << 8) & 0FF00h)
+  dw  ((%2>>16) & 0FFFFh)
+%endmacro
+
+DA_386IGate EQU 8Eh ; Intrruption gate

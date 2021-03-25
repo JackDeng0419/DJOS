@@ -21,6 +21,7 @@ struct BOOTINFO{
     short screenX, screenY;
 };
 void initBootInfo(struct BOOTINFO *pBootInfo);
+static struct BOOTINFO bootInfo;
 //======================================================================================
 
 
@@ -54,9 +55,13 @@ void putblock(char* vram, int vxsize, int pxsize, int pysize, int px0, int py0, 
 static char mcursor[228];
 //================================================================================================
 
+//[Interruption]=====================================================================================
+void intHandlerFromC(char* esp);
+//================================================================================================
+
 
 void CMain(void){
-    struct BOOTINFO bootInfo;
+    
     initBootInfo(&bootInfo);
     char*vram = bootInfo.vgaRam;
     int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
@@ -90,7 +95,7 @@ void CMain(void){
     // showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '2'*16);
     // showFont8(vram, xsize, 64, 8, COL8_FFFFFF, systemFont + '3'*16);
 
-    showString(vram, xsize, 72, 8, COL8_FFFFFF, "Welcom to DJOS");
+    showString(vram, xsize, 72, 8, COL8_FFFFFF, "Try to press a key");
     init_mouse_cursor(mcursor, COL8_008484);
     putblock(vram, xsize, 12, 19, 80, 80, mcursor, 12);
     for(;;) {
@@ -223,4 +228,15 @@ int pysize, int px0, int py0, char* buf, int bxsize) {
       for (x = 0; x < pxsize; x++) {
           vram[(py0+y) * vxsize + (px0+x)] = buf[y * bxsize + x];
       }
+}
+
+void intHandlerFromC(char* esp) {
+    char*vram = bootInfo.vgaRam;
+    int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
+    boxfill8(vram, xsize, COL8_000000, 0,0,32*8 -1, 15);
+    showString(vram, xsize, 0, 0, COL8_FFFFFF, "Welcome to DJOS"); 
+    for (;;) {
+        io_hlt();
+    }
+    //show_char();
 }

@@ -22,8 +22,20 @@ SelectorCode32  equ     LABEL_DESC_CODE32 - LABEL_GDT
 SelectorVideo   equ     LABEL_DESC_VIDEO - LABEL_GDT
 SelectorVram    equ     LABEL_DESC_VRAM - LABEL_GDT
 SelectorStack   equ     LABEL_DESC_STACK - LABEL_GDT
-;=======================================================================================
 
+
+
+;LDT=======================================================================================
+LABEL_IDT:
+%rep  255
+;         segment of the int code           the offset        default 0       attribute
+    Gate      SelectorCode32,             SpuriousHandler,      0,          DA_386IGate
+%endrep
+
+IdtLen  equ $ - LABEL_IDT
+IdtPtr  dw  IdtLen - 1
+        dd  0
+;=======================================================================================
 
 
 [SECTION .s16]
@@ -39,6 +51,8 @@ LABEL_BEGIN:
     mov al, 0x13
     mov ah, 0
     int 0x10
+
+    call init8259A
 
     ; making a gdt item for LABEL_SEG_CODE32
     xor eax, eax
@@ -70,6 +84,14 @@ LABEL_BEGIN:
 
     cli ; close the interrupting and prepare to enter protect mode
 
+     ; prepare for loading IDT
+     xor   eax, eax
+     mov   ax,  ds
+     shl   eax, 4
+     add   eax, LABEL_IDT
+     mov   dword [IdtPtr + 2], eax
+     lidt  [IdtPtr]
+
     in al, 92h
     or al, 00000010b
     out 92h, al
@@ -79,6 +101,53 @@ LABEL_BEGIN:
     ; now we are in protect mode, we can use the selector to access memory
 
     jmp dword SelectorCode32:0
+init8259A:
+     mov  al, 011h
+     out  02h, al
+     call io_delay
+  
+     out 0A0h, al
+     call io_delay
+
+     mov al, 020h
+     out 021h, al
+     call io_delay
+
+     mov  al, 028h
+     out  0A1h, al
+     call io_delay
+
+     mov  al, 004h
+     out  021h, al
+     call io_delay
+
+     mov  al, 002h
+     out  0A1h, al
+     call io_delay
+
+     mov  al, 003h
+     out  021h, al
+     call io_delay
+
+     out  0A1h, al
+     call io_delay
+
+     mov  al, 11111101b ;允许键盘中断
+     out  21h, al
+     call io_delay
+
+     mov  al, 11111111b
+     out  0A1h, al
+     call io_delay
+
+     ret
+
+io_delay:
+     nop
+     nop
+     nop
+     nop
+     ret
 
 
 [SECTION .s32]
@@ -91,8 +160,20 @@ LABEL_SEG_CODE32:
 
     mov ax, SelectorVram
     mov ds, ax
+
+    mov  ax, SelectorVideo
+    mov  gs, ax
+
 C_CODE_ENTRY:
+    sti ; recover the interruption
     %include "write_vga_desktop.asm"
+
+_SpuriousHandler:
+  SpuriousHandler  equ _SpuriousHandler - $$
+    
+     call intHandlerFromC
+    
+     iretd
 
 ;==[define some functions for C to use]================================================================
     io_hlt:
