@@ -15,25 +15,48 @@
 #define  COL8_008484  14
 #define  COL8_848484  15
 
+//[Basic initialization]==========================================================
+struct BOOTINFO{
+    char * vgaRam;
+    short screenX, screenY;
+};
+void initBootInfo(struct BOOTINFO *pBootInfo);
+//======================================================================================
+
+
 //[function to control hardwares]==========================================================
 void io_hlt(void);
 void io_cli(void);
 void io_out8(int port, int data);
 int  io_load_eflags(void);
 void io_store_eflags(int eflags);
-//==========================================================
+//======================================================================================
 
+
+//[palette]======================================================================================
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram,int xsize,  unsigned char c, int x, int y,
 int x0, int y0);
+//======================================================================================
+
+
+//[system font]=====================================================================================
+extern char systemFont[16];
+void showFont8(char *vram, int xsize, int x, int y, char c, char* font);
+void showString(char* vram, int xsize, int x, int y, char color, unsigned char *s);
+//================================================================================================
+
 
 void CMain(void){
-    char*vram = (char*)0xa0000;
-    int xsize = 320, ysize = 200;
+    struct BOOTINFO bootInfo;
+    initBootInfo(&bootInfo);
+    char*vram = bootInfo.vgaRam;
+    int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
 
     init_palette();
 
+    //[draw the desktop]****************************************************************************************************************
     boxfill8(vram, xsize, COL8_008484, 0, 0, xsize-1, ysize-29);
     boxfill8(vram, xsize, COL8_C6C6C6, 0, ysize-28, xsize-1, ysize-28);
     boxfill8(vram, xsize, COL8_FFFFFF, 0, ysize-27, xsize-1, ysize-27);
@@ -50,8 +73,31 @@ void CMain(void){
     boxfill8(vram, xsize, COL8_848484, xsize-47, ysize-23, xsize-47, ysize-4);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-47, ysize-3, xsize-4, ysize-3);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
+    //********************************************************************************************************************************************
+
+
+    // showFont8(vram, xsize, 8, 8, COL8_FFFFFF, systemFont + 'A'*16);
+    // showFont8(vram, xsize, 16, 8, COL8_FFFFFF, systemFont + 'B'*16);
+    // showFont8(vram, xsize, 24, 8, COL8_FFFFFF, systemFont + 'C'*16);
+    // showFont8(vram, xsize, 32, 8, COL8_FFFFFF, systemFont + '1'*16);
+    // showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '2'*16);
+    // showFont8(vram, xsize, 64, 8, COL8_FFFFFF, systemFont + '3'*16);
+
+    showString(vram, xsize, 72, 8, COL8_FFFFFF, "Welcom to DJOS");
     for(;;) {
        io_hlt();
+    }
+}
+void initBootInfo(struct BOOTINFO *pBootInfo) {
+    pBootInfo->vgaRam = (char*)0xa0000;
+    pBootInfo->screenX = 320;
+    pBootInfo->screenY = 200;
+}
+
+void showString(char* vram, int xsize, int x, int y, char color, unsigned char *s ) {
+    for (; *s != 0x00; s++) {
+       showFont8(vram, xsize, x, y,color, systemFont+ *s * 16);
+       x += 8;
     }
 }
 
@@ -104,4 +150,20 @@ int x0, int y0, int x1, int y1) {
          vram[y * xsize + x] = c;
      }
 
+}
+
+void showFont8(char *vram, int xsize, int x, int y, char c, char* font){
+    int i;
+    char d;
+    for(i=0;i<16;i++){
+        d = font[i];
+        if ((d & 0x80) != 0) {vram[(y+i)*xsize + x + 0] = c;}
+        if ((d & 0x40) != 0) {vram[(y+i)*xsize + x + 1] = c;}
+        if ((d & 0x20) != 0) {vram[(y+i)*xsize + x + 2] = c;} 
+        if ((d & 0x10) != 0) {vram[(y+i)*xsize + x + 3] = c;}
+        if ((d & 0x08) != 0) {vram[(y+i)*xsize + x + 4] = c;}
+        if ((d & 0x04) != 0) {vram[(y+i)*xsize + x + 5] = c;}
+        if ((d & 0x02) != 0) {vram[(y+i)*xsize + x + 6] = c;}
+        if ((d & 0x01) != 0) {vram[(y+i)*xsize + x + 7] = c;}
+    }
 }

@@ -51,14 +51,15 @@ LABEL_BEGIN:
     mov byte [LABEL_DESC_CODE32 + 7], ah
 
     ;set stack for C language
-     xor   eax, eax
-     mov   ax,  cs
-     shl   eax, 4
-     add   eax, LABEL_STACK
-     mov   word [LABEL_DESC_STACK + 2], ax
-     shr   eax, 16
-     mov   byte [LABEL_DESC_STACK + 4], al
-     mov   byte [LABEL_DESC_STACK + 7], ah
+    ;!!! this part will cause an error, because I DON'T KNOW
+    ;  xor   eax, eax
+    ;  mov   ax,  cs
+    ;  shl   eax, 4
+    ;  add   eax, LABEL_STACK
+    ;  mov   word [LABEL_DESC_STACK + 2], ax
+    ;  shr   eax, 16
+    ;  mov   byte [LABEL_DESC_STACK + 4], al
+    ;  mov   byte [LABEL_DESC_STACK + 7], ah
 
     xor eax, eax
     mov ax, ds
@@ -83,6 +84,7 @@ LABEL_BEGIN:
 [SECTION .s32]
 [BITS 32]
 LABEL_SEG_CODE32:
+    ; let ss point to the stack
     mov ax, SelectorStack
     mov ss, ax
     mov esp, TopOfStack
@@ -152,14 +154,8 @@ C_CODE_ENTRY:
         push eax
         popfd
         ret
+    %include "fontData.inc"
 ;============================================================================================================
-table_rgb.1416:                                         ; byte
-        db 00H, 00H, 00H, 0FFH, 00H, 00H, 00H, 0FFH     ; 0000 _ ........
-        db 00H, 0FFH, 0FFH, 00H, 00H, 00H, 0FFH, 0FFH   ; 0008 _ ........
-        db 00H, 0FFH, 00H, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH ; 0010 _ ........
-        db 0C6H, 0C6H, 0C6H, 84H, 00H, 00H, 00H, 84H    ; 0018 _ ........
-        db 00H, 84H, 84H, 00H, 00H, 00H, 84H, 84H       ; 0020 _ ........
-        db 00H, 84H, 00H, 84H, 84H, 84H, 84H, 84H
 
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 
@@ -167,5 +163,5 @@ SegCode32Len   equ  $ - LABEL_SEG_CODE32
 ALIGN 32
 [BITS 32]
 LABEL_STACK:
-times 512 db 0
+times 1024 db 0
 TopOfStack equ $-LABEL_STACK
