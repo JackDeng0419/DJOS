@@ -298,6 +298,9 @@ mouseHandler equ _mouseHandler - $$
     get_memory_block_count:
       mov eax, [dwMCRNumber] ; the return value is in eax
       ret
+    get_adr_buffer:
+      mov eax, MemChkBuf
+      ret
   
 
 %include "fontData.inc"

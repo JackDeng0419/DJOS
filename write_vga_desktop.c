@@ -113,6 +113,18 @@ static char keyval[5] = {'0', 'X', 0, 0, 0};
 
 //[Memory Management]=====================================================================================
 char*  intToHexStr(unsigned int d);
+struct AddrRangeDesc{
+    unsigned int baseAddrLow;
+    unsigned int baseAddrHigh;
+    unsigned int lengthLow;
+    unsigned int lengthHigh;
+    unsigned int type;
+};
+
+int get_memory_block_count();
+char* get_adr_buffer();
+void showMemoryInfo(struct AddrRangeDesc * desc, char * vram, int page, int xsize, int color);
+
 //===================================================================================================
 
 void CMain(void){
@@ -155,7 +167,8 @@ void CMain(void){
 
     int memCnt = get_memory_block_count();
     char* pStr = intToHexStr(memCnt);
-    showString(vram, xsize, 0, 0, COL8_FFFFFF, pStr);
+    struct AddrRangeDesc* memDesc = (struct AddrRangeDesc*)get_adr_buffer();
+    int count = 0;
 
     io_sti();
     enable_mouse(&mdec);
@@ -167,10 +180,18 @@ void CMain(void){
        else if(fifo8_status(&keyinfo) != 0){
            io_sti();
            data = fifo8_get(&keyinfo);
-           char* pStr = charToHexStr(data);
-           static int showPos = 0;
-           showString(vram, xsize, showPos, 0, COL8_FFFFFF, pStr);
-           showPos += 32;
+
+           if(data==0x1C){
+               showMemoryInfo(memDesc+count, vram, count, xsize, COL8_FFFFFF);
+               count = count+1;
+               if(count>memCnt){
+                   count= 0;
+               }
+           }
+        //    char* pStr = charToHexStr(data);
+        //    static int showPos = 0;
+        //    showString(vram, xsize, showPos, 0, COL8_FFFFFF, pStr);
+        //    showPos += 32;
        }
        else if(fifo8_status(&mouseinfo) != 0){
            show_mouse_info();
@@ -534,4 +555,40 @@ char*  intToHexStr(unsigned int d) {
     } 
 
     return str;
+}
+
+
+void  showMemoryInfo(struct AddrRangeDesc* desc, char* vram, int page,int xsize, int color) {
+    int x = 0, y = 0, gap = 13*8,  strLen = 10* 8;
+
+    boxfill8(vram, xsize, COL8_008484, 0, 0,  xsize, 100);
+
+    showString(vram, xsize, x, y, color, "page is: ");
+    char* pPageCnt = intToHexStr(page);
+    showString(vram, xsize, gap, y, color, pPageCnt);
+    y += 16;
+
+    showString(vram, xsize, x, y, color, "BaseAddrL: ");
+    char* pBaseAddrL = intToHexStr(desc->baseAddrLow);
+    showString(vram, xsize, gap, y, color, pBaseAddrL);
+    y += 16;
+
+    showString(vram, xsize, x, y, color, "BaseAddrH: ");
+    char* pBaseAddrH = intToHexStr(desc->baseAddrHigh);
+    showString(vram, xsize, gap, y, color, pBaseAddrH);
+  
+    y += 16;
+    showString(vram, xsize, x, y, color, "lengthLow: ");
+    char* pLengthLow = intToHexStr(desc->lengthLow);
+    showString(vram, xsize, gap, y, color, pLengthLow);
+
+    y+= 16;
+    showString(vram, xsize, x, y, color, "lengthHigh: ");
+    char* pLengthHigh = intToHexStr(desc->lengthHigh);
+    showString(vram, xsize, gap, y, color, pLengthHigh);
+
+    y+= 16;
+    showString(vram, xsize, x, y, color, "type: ");
+    char* pType = intToHexStr(desc->type);
+    showString(vram, xsize, gap, y, color, pType);
 }
