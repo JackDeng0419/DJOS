@@ -111,6 +111,9 @@ static char keyval[5] = {'0', 'X', 0, 0, 0};
 
 //================================================================================================
 
+//[Memory Management]=====================================================================================
+char*  intToHexStr(unsigned int d);
+//===================================================================================================
 
 void CMain(void){
     
@@ -149,6 +152,10 @@ void CMain(void){
     my = (ysize - 28 - 19) / 2;  
     init_mouse_cursor(mcursor, COL8_008484);
     putblock(vram, xsize, 12, 19, mx, my, mcursor, 12);
+
+    int memCnt = get_memory_block_count();
+    char* pStr = intToHexStr(memCnt);
+    showString(vram, xsize, 0, 0, COL8_FFFFFF, pStr);
 
     io_sti();
     enable_mouse(&mdec);
@@ -502,4 +509,29 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat){
     }
 
     return -1;
+}
+
+char*  intToHexStr(unsigned int d) {
+    static char str[11];
+    str[0] = '0';
+    str[1] = 'X';
+    str[10] = 0;
+
+    int i = 2;
+    for(; i < 10; i++) {
+        str[i] = '0';
+    }
+
+    int p = 9;
+    while (p > 1 && d > 0) {
+        int e = d % 16;
+        d /= 16;
+        if (e >= 10) {
+           str[p] = 'A' + e - 10;
+        } else {
+            str[p] = '0' + e;
+        }         
+    } 
+
+    return str;
 }

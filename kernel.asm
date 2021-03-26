@@ -2,12 +2,12 @@
 
 org   0x9000
 
-VRAM_ADDRESS  equ  0x000a0000
+VRAM_ADDRESS  equ  0x000a0000 ; the address for graphic
 
 jmp   LABEL_BEGIN
 
 [SECTION .gdt]
- ;                                  段基址          段界限                属性
+ ;
 LABEL_GDT:          Descriptor        0,            0,                   0  
 LABEL_DESC_CODE32:  Descriptor        0,      SegCode32Len - 1,       DA_C + DA_32
 LABEL_DESC_VIDEO:   Descriptor        0B8000h,         0ffffh,            DA_DRW
@@ -52,6 +52,26 @@ LABEL_BEGIN:
      mov   ss, ax
      mov   sp, 0100h
 
+     ; obtain memory information
+ComputeMemory:
+     mov ebx, 0
+     mov di, MemChkBuf
+.loop:
+     mov eax, 0E820h
+     mov ecx, 20
+     mov edx, 0534D4150h
+     int 15h ; bios int
+     jc LABEL_MEM_CHK_FAIL
+     add di, 20 ; every time 20 bytes, so adding 20-byte to the address
+     inc dword [dwMCRNumber]
+     cmp ebx, 0 ; if ebx==0, means that all mem blocks have been input
+     jne .loop
+     jmp LABEL_MEM_CHK_OK
+
+LABEL_MEM_CHK_FAIL:
+      mov dword [dwMCRNumber], 0
+
+LABEL_MEM_CHK_OK:
      mov   al, 0x13
      mov   ah, 0
      int   0x10
@@ -74,7 +94,7 @@ LABEL_BEGIN:
 
      lgdt  [GdtPtr]
 
-     cli   ;关中断
+     cli  
 
      call init8259A
 
@@ -129,11 +149,11 @@ init8259A:
      out  0A1h, al
      call io_delay
 
-     mov  al, 11111001b ;允许键盘中断
+     mov  al, 11111001b ;allow keyboard int
      out  021h, al
      call io_delay
 
-     mov  al, 11101111b ;允许鼠标中断
+     mov  al, 11101111b ;allow mouse int
      out  0A1h, al
      call io_delay
 
@@ -275,12 +295,17 @@ mouseHandler equ _mouseHandler - $$
         push eax
         popfd
         ret
-
+    get_memory_block_count:
+      mov eax, [dwMCRNumber] ; the return value is in eax
+      ret
   
 
 %include "fontData.inc"
 
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
+
+MemChkBuf: times 256 db 0   ; the memory block information 
+dwMCRNumber: dd 0 ; how many memory blocks are written
 
 [SECTION .gs]
 ALIGN 32
